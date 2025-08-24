@@ -28,7 +28,13 @@ const mockDashboardActivities: DashboardActivity = {
     {
       id: '1',
       title: 'Sosyal Medya Kampanyası',
-      brand: { id: '1', name: 'Nike Türkiye', logo: 'https://picsum.photos/32/32?random=1' },
+      brand: { 
+        id: '1', 
+        name: 'Nike Türkiye', 
+        logo: 'https://picsum.photos/32/32?random=1',
+        createdAt: '2024-01-15T00:00:00Z',
+        updatedAt: '2024-01-15T00:00:00Z'
+      },
       reward: 250,
       status: 'active',
       createdAt: '2024-01-15T00:00:00Z',
@@ -42,7 +48,13 @@ const mockDashboardActivities: DashboardActivity = {
     {
       id: '2',
       title: 'Ürün Fotoğrafı Çekimi',
-      brand: { id: '2', name: 'Coca-Cola', logo: 'https://picsum.photos/32/32?random=2' },
+      brand: { 
+        id: '2', 
+        name: 'Coca-Cola', 
+        logo: 'https://picsum.photos/32/32?random=2',
+        createdAt: '2024-01-20T00:00:00Z',
+        updatedAt: '2024-01-20T00:00:00Z'
+      },
       reward: 300,
       status: 'active',
       createdAt: '2024-01-20T00:00:00Z',
@@ -55,7 +67,13 @@ const mockDashboardActivities: DashboardActivity = {
     {
       id: '3',
       title: 'Müşteri Anketi',
-      brand: { id: '3', name: 'Samsung', logo: 'https://picsum.photos/32/32?random=3' },
+      brand: { 
+        id: '3', 
+        name: 'Samsung', 
+        logo: 'https://picsum.photos/32/32?random=3',
+        createdAt: '2024-02-01T00:00:00Z',
+        updatedAt: '2024-02-01T00:00:00Z'
+      },
       reward: 150,
       status: 'draft',
       createdAt: '2024-02-01T00:00:00Z',

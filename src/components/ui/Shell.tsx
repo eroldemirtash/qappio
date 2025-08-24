@@ -21,7 +21,7 @@ import {
 export interface SidebarItem {
   label: string;
   href: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<any>;
 }
 
 export interface MissionCard {

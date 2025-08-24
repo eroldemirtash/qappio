@@ -136,7 +136,7 @@ export const handleApiError = (error: any): string => {
     if (error.response?.status === 429) {
       return 'Çok fazla istek gönderildi. Lütfen bekleyin.'
     }
-    if (error.response?.status >= 500) {
+    if (error.response?.status && error.response.status >= 500) {
       return 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.'
     }
     return 'Bir hata oluştu. Lütfen tekrar deneyin.'
