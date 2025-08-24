@@ -1,0 +1,38 @@
+/* Qappio MINI FIX – güvenli sürüm (layout'a dokunmaz) */
+:root { 
+  --lh:1.4; 
+  --q-surface: #ffffff;
+  --q-line: #E5E7EB;
+  --q-radius: 16px;
+  --q-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --q-sub: #6B7280;
+}
+html, body { line-height: var(--lh); -webkit-text-size-adjust: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+
+/* Yazılar üst üste binmesin */
+label { line-height: 1.2; }
+button, input, select, textarea { font: inherit; line-height: 1.2; }
+
+/* Form alanları nefes alsın */
+.qp-field { display: flex; flex-direction: column; gap: 6px; }
+.qp-input, .qp-select, .qp-textarea {
+  min-height: 44px; padding: 10px 12px; border: 1px solid #E5E7EB; border-radius: 10px; background: #fff;
+}
+.qp-input:focus, .qp-select:focus, .qp-textarea:focus {
+  outline: 0; border-color: #0BD3C8; box-shadow: 0 0 0 2px #59E1D966;
+}
+
+/* Tablo taşmasın */
+.qp-table-wrap { overflow-x: auto; }
+.qp-table { width: 100%; min-width: 900px; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+.qp-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Qappio buton rengi (isteğe bağlı) */
+.qp-btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 44px; padding: 0 14px; border-radius: 12px; color: #fff; border: 0;
+  background: linear-gradient(90deg, #0BD3C8, #0E1D5A);
+  box-shadow: 0 10px 30px rgba(11,211,200,.25);
+}

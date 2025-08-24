@@ -1,0 +1,853 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Target, Plus, Search, Edit, Trash2, Eye, Calendar, Users, Star, Award, Building2, X } from 'lucide-react';
+
+interface Mission {
+  _id: string;
+  title: string;
+  brand: string;
+  sponsorBrand?: string;
+  status: 'Aktif' | 'Pasif' | 'Tamamlandı' | 'Beklemede';
+  budget: number;
+  participants: number;
+  startDate: string;
+  endDate: string;
+  category: string;
+  description: string;
+  isWeekly: boolean;
+  isSponsored: boolean;
+  reward: number;
+  requirements?: string[];
+  tags?: string[];
+}
+
+const API_BASE = 'http://localhost:8000/api';
+
+export default function MissionsPage() {
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Backend'den görevleri çek
+  useEffect(() => {
+    const fetchMissions = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_BASE}/tasks`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setMissions(data.data);
+        } else {
+          setError('Görevler yüklenirken hata oluştu');
+        }
+      } catch (err) {
+        setError('API bağlantı hatası');
+        console.error('Missions fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMissions();
+  }, []);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingMission, setEditingMission] = useState<Mission | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'weekly' | 'sponsored'>('all');
+  const [newMission, setNewMission] = useState<Omit<Mission, 'id' | 'participants' | 'reward'>>({
+    title: '',
+    brand: '',
+    sponsorBrand: '',
+    status: 'Aktif',
+    budget: 0,
+    startDate: '',
+    endDate: '',
+    category: '',
+    description: '',
+    isWeekly: false,
+    isSponsored: false
+  });
+
+  const brands = ['Nike Türkiye', 'Coca-Cola', 'Samsung', 'McDonald\'s', 'Adidas', 'Apple', 'Tesla', 'Netflix'];
+  const categories = ['Sosyal Medya', 'Fotoğraf', 'Video', 'Anket', 'İçerik Üretimi', 'Pazarlama', 'Araştırma'];
+
+  // Modal açma
+  const openModal = () => {
+    setIsModalOpen(true);
+    setNewMission({
+      title: '',
+      brand: '',
+      sponsorBrand: '',
+      status: 'Aktif',
+      budget: 0,
+      startDate: '',
+      endDate: '',
+      category: '',
+      description: '',
+      isWeekly: false,
+      isSponsored: false
+    });
+  };
+
+  // Modal kapatma
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setNewMission({
+      title: '',
+      brand: '',
+      sponsorBrand: '',
+      status: 'Aktif',
+      budget: 0,
+      startDate: '',
+      endDate: '',
+      category: '',
+      description: '',
+      isWeekly: false,
+      isSponsored: false
+    });
+  };
+
+  // Düzenleme modalı açma
+  const openEditModal = (mission: Mission) => {
+    setEditingMission({ ...mission });
+    setIsEditModalOpen(true);
+  };
+
+  // Düzenleme modalı kapatma
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingMission(null);
+  };
+
+  // Yeni görev ekleme
+  const addMission = async () => {
+    if (newMission.title && newMission.brand && newMission.startDate && newMission.endDate) {
+      try {
+        const missionData = {
+          ...newMission,
+          participants: 0,
+          reward: Math.floor(newMission.budget / 10)
+        };
+
+        const response = await fetch(`${API_BASE}/tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(missionData),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          setMissions([...missions, data.data]);
+          closeModal();
+          // Form'u temizle
+          setNewMission({
+            title: '',
+            brand: '',
+            sponsorBrand: '',
+            status: 'Aktif',
+            budget: 0,
+            startDate: '',
+            endDate: '',
+            category: 'Fotoğraf',
+            description: '',
+            isWeekly: false,
+            isSponsored: false,
+          });
+        } else {
+          alert('Görev eklenirken hata oluştu: ' + data.message);
+        }
+      } catch (err) {
+        console.error('Add mission error:', err);
+        alert('Görev eklenirken hata oluştu');
+      }
+    }
+  };
+
+  // Görev güncelleme
+  const updateMission = () => {
+    if (editingMission && editingMission.title && editingMission.brand && editingMission.startDate && editingMission.endDate) {
+              setMissions(missions.map(mission => 
+          mission._id === editingMission._id ? editingMission : mission
+        ));
+      closeEditModal();
+    }
+  };
+
+  // Görev silme
+  const deleteMission = (id: string) => {
+    if (window.confirm('Bu görevi silmek istediğinizden emin misiniz?')) {
+      setMissions(missions.filter(mission => mission._id !== id));
+    }
+  };
+
+  // Input değişikliklerini handle etme
+  const handleNewMissionChange = (field: keyof Omit<Mission, 'id' | 'participants' | 'reward'>, value: string | number | boolean) => {
+    setNewMission({
+      ...newMission,
+      [field]: value
+    });
+  };
+
+  const handleEditMissionChange = (field: keyof Mission, value: string | number | boolean) => {
+    if (editingMission) {
+      setEditingMission({
+        ...editingMission,
+        [field]: value
+      });
+    }
+  };
+
+  // Filtreleme
+  const filteredMissions = missions.filter(mission => {
+    const matchesSearch = mission.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         mission.brand.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = !statusFilter || mission.status === statusFilter;
+    const matchesCategory = !categoryFilter || mission.category === categoryFilter;
+    
+    let matchesTab = true;
+    if (activeTab === 'weekly') matchesTab = mission.isWeekly;
+    if (activeTab === 'sponsored') matchesTab = mission.isSponsored;
+    
+    return matchesSearch && matchesStatus && matchesCategory && matchesTab;
+  });
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Görev Yönetimi</h1>
+            <p className="text-gray-600">Platformdaki görevleri yönetin ve takip edin</p>
+          </div>
+          <button 
+            onClick={openModal}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center space-x-2"
+          >
+            <Plus size={20} />
+            <span>Yeni Görev Ekle</span>
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'all'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Tüm Görevler
+              </button>
+              <button
+                onClick={() => setActiveTab('weekly')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  activeTab === 'weekly'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Star size={16} />
+                <span>Haftanın Görevleri</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('sponsored')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  activeTab === 'sponsored'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Award size={16} />
+                <span>Sponsorlu Görevler</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Loading and Error States */}
+        {loading && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <span className="ml-3 text-gray-600">Görevler yükleniyor...</span>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-5 h-5 bg-red-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">!</span>
+                </div>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Hata</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search and Filters */}
+        {!loading && !error && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Görev ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+                />
+              </div>
+            </div>
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+            >
+              <option value="">Tüm Durumlar</option>
+              <option value="Aktif">Aktif</option>
+              <option value="Pasif">Pasif</option>
+              <option value="Beklemede">Beklemede</option>
+              <option value="Tamamlandı">Tamamlandı</option>
+            </select>
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
+            >
+              <option value="">Tüm Kategoriler</option>
+              {categories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Missions Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Görev Listesi</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              {activeTab === 'all' && 'Tüm görevler'}
+              {activeTab === 'weekly' && 'Haftanın görevleri'}
+              {activeTab === 'sponsored' && 'Sponsorlu görevler'}
+              {' - '}Toplam {filteredMissions.length} görev bulundu
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Görev Adı</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marka</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bütçe</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Katılım</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredMissions.map((mission) => (
+                  <tr key={mission._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Target className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+                            <span>{mission.title}</span>
+                            {mission.isWeekly && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <Star size={12} className="mr-1" />
+                                Haftalık
+                              </span>
+                            )}
+                            {mission.isSponsored && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                <Award size={12} className="mr-1" />
+                                Sponsorlu
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500">{mission.category}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                        <div className="text-sm text-gray-900">{mission.brand}</div>
+                      </div>
+                      {mission.sponsorBrand && (
+                        <div className="text-xs text-purple-600 mt-1">
+                          Sponsor: {mission.sponsorBrand}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        mission.status === 'Aktif' 
+                          ? 'bg-green-100 text-green-800'
+                          : mission.status === 'Beklemede'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : mission.status === 'Tamamlandı'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {mission.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        ₺{mission.budget.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <div className="text-sm text-gray-900">{mission.participants}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span>{mission.startDate}</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Bitiş: {mission.endDate}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => openEditModal(mission)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                          title="Düzenle"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => deleteMission(mission._id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                          title="Sil"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Add Mission Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Yeni Görev Ekle</h3>
+                <button 
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Görev Adı
+                  </label>
+                  <input
+                    type="text"
+                    value={newMission.title}
+                    onChange={(e) => handleNewMissionChange('title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="Görev adını girin"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Marka
+                    </label>
+                    <select
+                      value={newMission.brand}
+                      onChange={(e) => handleNewMissionChange('brand', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="">Marka seçin</option>
+                      {brands.map(brand => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Kategori
+                    </label>
+                    <select
+                      value={newMission.category}
+                      onChange={(e) => handleNewMissionChange('category', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="">Kategori seçin</option>
+                      {categories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Başlangıç Tarihi
+                    </label>
+                    <input
+                      type="date"
+                      value={newMission.startDate}
+                      onChange={(e) => handleNewMissionChange('startDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bitiş Tarihi
+                    </label>
+                    <input
+                      type="date"
+                      value={newMission.endDate}
+                      onChange={(e) => handleNewMissionChange('endDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bütçe (₺)
+                    </label>
+                    <input
+                      type="number"
+                      value={newMission.budget}
+                      onChange={(e) => handleNewMissionChange('budget', parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Durum
+                    </label>
+                    <select
+                      value={newMission.status}
+                      onChange={(e) => handleNewMissionChange('status', e.target.value as Mission['status'])}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Pasif">Pasif</option>
+                      <option value="Beklemede">Beklemede</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="isWeekly"
+                      checked={newMission.isWeekly}
+                      onChange={(e) => handleNewMissionChange('isWeekly', e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isWeekly" className="text-sm font-medium text-gray-700">
+                      Haftanın Görevi
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="isSponsored"
+                      checked={newMission.isSponsored}
+                      onChange={(e) => handleNewMissionChange('isSponsored', e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isSponsored" className="text-sm font-medium text-gray-700">
+                      Sponsorlu Görev
+                    </label>
+                  </div>
+                </div>
+
+                {newMission.isSponsored && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sponsor Marka
+                    </label>
+                    <select
+                      value={newMission.sponsorBrand}
+                      onChange={(e) => handleNewMissionChange('sponsorBrand', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="">Sponsor marka seçin</option>
+                      {brands.filter(brand => brand !== newMission.brand).map(brand => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Açıklama
+                  </label>
+                  <textarea
+                    value={newMission.description}
+                    onChange={(e) => handleNewMissionChange('description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="Görev açıklaması"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={addMission}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                >
+                  Görev Ekle
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Mission Modal */}
+        {isEditModalOpen && editingMission && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Görev Düzenle</h3>
+                <button 
+                  onClick={closeEditModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Görev Adı
+                  </label>
+                  <input
+                    type="text"
+                    value={editingMission.title}
+                    onChange={(e) => handleEditMissionChange('title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Marka
+                    </label>
+                    <select
+                      value={editingMission.brand}
+                      onChange={(e) => handleEditMissionChange('brand', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      {brands.map(brand => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Kategori
+                    </label>
+                    <select
+                      value={editingMission.category}
+                      onChange={(e) => handleEditMissionChange('category', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      {categories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Başlangıç Tarihi
+                    </label>
+                    <input
+                      type="date"
+                      value={editingMission.startDate}
+                      onChange={(e) => handleEditMissionChange('startDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bitiş Tarihi
+                    </label>
+                    <input
+                      type="date"
+                      value={editingMission.endDate}
+                      onChange={(e) => handleEditMissionChange('endDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bütçe (₺)
+                    </label>
+                    <input
+                      type="number"
+                      value={editingMission.budget}
+                      onChange={(e) => handleEditMissionChange('budget', parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Durum
+                    </label>
+                    <select
+                      value={editingMission.status}
+                      onChange={(e) => handleEditMissionChange('status', e.target.value as Mission['status'])}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Pasif">Pasif</option>
+                      <option value="Beklemede">Beklemede</option>
+                      <option value="Tamamlandı">Tamamlandı</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="editIsWeekly"
+                      checked={editingMission.isWeekly}
+                      onChange={(e) => handleEditMissionChange('isWeekly', e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="editIsWeekly" className="text-sm font-medium text-gray-700">
+                      Haftanın Görevi
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="editIsSponsored"
+                      checked={editingMission.isSponsored}
+                      onChange={(e) => handleEditMissionChange('isSponsored', e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="editIsSponsored" className="text-sm font-medium text-gray-700">
+                      Sponsorlu Görev
+                    </label>
+                  </div>
+                </div>
+
+                {editingMission.isSponsored && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sponsor Marka
+                    </label>
+                    <select
+                      value={editingMission.sponsorBrand}
+                      onChange={(e) => handleEditMissionChange('sponsorBrand', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="">Sponsor marka seçin</option>
+                      {brands.filter(brand => brand !== editingMission.brand).map(brand => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Açıklama
+                  </label>
+                  <textarea
+                    value={editingMission.description}
+                    onChange={(e) => handleEditMissionChange('description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={updateMission}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                >
+                  Güncelle
+                </button>
+                <button
+                  onClick={closeEditModal}
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}
